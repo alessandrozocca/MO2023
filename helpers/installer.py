@@ -201,7 +201,7 @@ def install_highs():
     if found_installation(module="highspy"):
         return True
 
-    print("Installing highs via pip", end="")
+    print("Installing highs via pip ... ", end="")
     os.system("pip install -q highspy")
 
     return confirm_installation(module="highspy")

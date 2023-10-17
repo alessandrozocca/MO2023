@@ -87,7 +87,7 @@ def plot_solution(coords, model):
     """ Plot the solution for an instance, provided a list of [coords] and a solved [model] """
 
     # Construct an adjacency matrix
-    adjacency = {i: {j: int(model.arc[i, j]()) for j in model.nodes} for i in model.nodes}
+    adjacency = {i: {j: round(model.arc[i, j]()) for j in model.nodes} for i in model.nodes}
 
     # Load matrix as networkx DiGraph
     G = nx.from_pandas_adjacency(pd.DataFrame(adjacency).T, create_using=nx.DiGraph)
@@ -104,7 +104,7 @@ def plot_solution(coords, model):
     node_colors = ["green"] * len(s) + ["blue"] * (coords.size - len(s) - len(t)) + ["red"] * len(t)
 
     # Plot instance and routes on a coordinate grid
-    edge_labels = {(i, j): int(model.node_load[i]()) for i in model.nodes for j in model.nodes if model.arc[i, j]() == 1}
+    edge_labels = {(i, j): round(model.node_load[i]()) for i in model.nodes for j in model.nodes if model.arc[i, j]() == 1}
 
     nx.draw_networkx(G, ax=ax[0], pos=coords, nodelist=model.nodes, font_size=11, font_color="white", node_color=node_colors, alpha=0.75)
     nx.draw_networkx_edge_labels(G, ax=ax[0], pos=coords, edge_labels=edge_labels)
