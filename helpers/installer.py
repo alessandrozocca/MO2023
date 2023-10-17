@@ -1,242 +1,263 @@
-import shutil
-import sys
-import os.path
 import os
+import sys
+import shutil
 import subprocess
+import importlib
 
-def _check_available(executable_name):
+
+def _has_executable(executable_name):
     """Return True if the executable_name is found in the search path."""
-    return (shutil.which(executable_name) is not None) or os.path.isfile(executable_name)
+    if executable_name is None:
+        return True
+    if shutil.which(executable_name) is not None:
+        return True
+    if os.path.isfile(executable_name):
+        return True
+    return False
 
-def package_available(package_name):
-    """Return True if package_name is installed."""
-    return _check_available("glpsol") if package_name == "glpk" else _check_available(package_name)
 
-def package_found(package_name):
+def _has_module(module_name):
+    """ Return true if the module_name can be imported """
+    if module_name is None:
+        return True
+
+    try:
+        importlib.import_module(module_name)
+        return True
+    except ImportError:
+        return False
+
+
+def _check_available(executable, module):
+    """Return True if name is installed."""
+    return _has_executable(executable) and _has_module(module)
+
+
+def found_installation(executable=None, module=None):
     """Print message confirming that package was found, then return True or False."""
-    is_available = package_available(package_name)
+    is_available = _check_available(executable, module)
     if is_available:
-        print(f"{package_name} was previously installed")
+        name = next(n for n in (executable, module) if n is not None)
+        print(f"{name} was previously installed")
     return is_available
 
-def package_confirm(package_name):
+
+def confirm_installation(executable=None, module=None):
     """Confirm package is available after installation."""
-    if package_available(package_name):
+    if _check_available(executable, module):
         print("installation successful")
         return True
     else:
         print("installation failed")
         return False
+
 
 def on_colab(): 
     """Return True if running on Google Colab."""
     return "google.colab" in sys.modules
 
-def install_pyomo():
-    """Install pyomo from idaes_pse to include enhanced LA solvers."""
-    if package_found("pyomo"):
+
+def install_condacolab():
+    if found_installation("conda"):
         return True
-    print("Installing pyomo from idaes_pse via pip ... ", end="")
-    os.system("pip install -q idaes_pse")
-    return package_confirm("pyomo")
+
+    if on_colab():
+        print("Installing condacolab via pip ... ", end="")
+        print("Restarting the notebook might be required afterwards ... ", end="")
+        os.system("pip install -q condacolab")
+        import condacolab
+        condacolab.install()
+    else:
+        print("Can only install condacolab on Google Colab ... ", end="")
+
+    return confirm_installation("conda")
+
 
 def install_idaes():
-    if package_found("idaes"):
-        return
+    if found_installation("idaes"):
+        return True
+
     print("Installing idaes from idaes_pse via pip ... ", end="")
     os.system("pip install -q idaes_pse")
-    return package_confirm("idaes")
 
-def install_ipopt():
-    if package_found("ipopt"):
+    return confirm_installation("idaes")
+
+
+def install_idaes_solvers():
+    if install_idaes():
+        print("Installing idaes extensions ...")
+        if on_colab():
+            os.system("idaes get-extensions --to /usr/local/bin/")
+        else:
+            os.system("idaes get-extensions")
+
+    return True
+
+
+def install_pyomo():
+    if found_installation(module="pyomo"):
         return True
 
-    # try idaes version of ipopt with HSL solvers
     if on_colab():
-        # Install idaes solvers
-        print("Installing ipopt and k_aug on Google Colab via idaes get-extensions ... ", end="")
-        os.system("idaes get-extensions")
-
-        # Add symbolic link for idaes solvers
-        os.system("ln -s /root/.idaes/bin/ipopt ipopt")
-        os.system("ln -s /root/.idaes/bin/k_aug k_aug")
-    
-    # check again
-    if package_confirm("ipopt"):
-        return True
-
-    # try coin-OR version of ipopt with mumps solvers
-    if on_colab():
-        print("Installing ipopt on Google Colab via zip file ... ", end="")
-        os.system('wget -N -q "https://ampl.com/dl/open/ipopt/ipopt-linux64.zip"')
-        os.system('!unzip -o -q ipopt-linux64')
+        return install_idaes()
     else:
-        print("Installing Ipopt via conda ... ", end="")
-        os.system('conda install -c conda-forge ipopt')
-    return package_confirm("ipopt")
+        print("Installing pyomo via conda ...", end="")
+        os.system("conda install -y -q -c conda-forge pyomo")
+
+    return confirm_installation(module="pyomo")
+
 
 def install_glpk():
-    if package_found("glpk"):
+    if found_installation("glpsol"):
         return True
+
     if on_colab():
         print("Installing glpk on Google Colab via apt-get ... ", end="")
         os.system('apt-get install -y -qq glpk-utils')
     else:
         print("Installing glpk via conda ... ", end="")
-        os.system('conda install -c conda-forge glpk')
-    return package_confirm("glpk")
+        os.system('conda install -y -q -c conda-forge glpk')
+
+    return confirm_installation("glpsol")
+
+
+def install_ipopt():
+    if found_installation("ipopt"):
+        return True
+
+    if on_colab():
+        return install_idaes_solvers()
+    else:
+        print("Installing Ipopt via conda ... ", end="")
+        os.system('conda install -y -q -c conda-forge ipopt')
+
+    return confirm_installation("ipopt")
+
 
 def install_cbc():
-    if package_found("cbc"):
+    if found_installation("cbc"):
         return True
+
     if on_colab():
-        print("Installing cbc on Google Colab via zip file ... ", end="")
-        os.system('wget -N -q "https://ampl.com/dl/open/cbc/cbc-linux64.zip"')
-        os.system('unzip -o -q cbc-linux64')
+        return install_idaes_solvers()
     else:
         print("Installing cbc via apt-get ... ", end="")
         os.system('apt-get install -y -qq coinor-cbc')
-    return package_confirm("cbc")
-        
+
+    return confirm_installation("cbc")
+
+
 def install_bonmin():
-    if package_found("bonmin"):
+    if found_installation("bonmin"):
         return True
+
     if on_colab():
-        print("Installing bonmin on Google Colab via zip file ... ", end="")
-        os.system('wget -N -q "https://ampl.com/dl/open/bonmin/bonmin-linux64.zip"')
-        os.system('unzip -o -q bonmin-linux64')
+        return install_idaes_solvers()
     else:
         print("No procedure implemented to install bonmin ... ", end="")
-    return package_confirm("bonmin")
+        print("You may try to use install_idaes_solvers() instead ... ", end="")
+
+    return confirm_installation("bonmin")
+
 
 def install_couenne():
-    if package_found("couenne"):
-        return
+    if found_installation("couenne"):
+        return True
+
     if on_colab():
-        print("Installing couenne on Google Colab via via zip file ... ", end="")
-        os.system('wget -N -q "https://ampl.com/dl/open/couenne/couenne-linux64.zip"')
-        os.system('unzip -o -q couenne-linux64')
+        return install_idaes_solvers()
     else:
         print("No procedure implemented to install couenne ... ", end="")
-    return package_confirm("couenne")
+        print("You may try to use install_idaes_solvers() instead ... ", end="")
+
+    return confirm_installation("couenne")
+
 
 def install_gecode():
-    if package_found("gecode"):
-        return
+    if found_installation("gecode"):
+        return True
+
     if on_colab():
-        print("Installing gecode on Google Colab via via zip file ... ", end="")
-        os.system('wget -N -q "https://ampl.com/dl/open/gecode/gecode-linux64.zip"')
-        os.system('unzip -o -q gecode-linux64')
+        print("No procedure implemented to install gecode ... ", end="")
     else:
         print("No procedure implemented to install gecode ... ", end="")
-    return package_confirm("gecode")
+
+    return confirm_installation("gecode")
+
 
 def install_scip():
-    if package_found("scip"):
-        return
+    if found_installation("scip"):
+        return True
 
+    print("Installing scip via conda ... ", end="")
     if on_colab():
-        print("Installing scip on Google Colab via conda ... ", end="")
-        try:
-            import condacolab
-        except:
-            os.system("pip install -q condacolab")
-            import condacolab
-            condacolab.install()
-        os.system("conda install -y pyscipopt")
+        install_condacolab()
+    os.system("conda install -y -q pyscipopt")
 
-    return package_confirm("scip")
+    return confirm_installation("scip")
+
+
+def install_highs():
+    if found_installation(module="highspy"):
+        return True
+
+    print("Installing highs via pip", end="")
+    os.system("pip install -q highspy")
+
+    return confirm_installation(module="highspy")
+
 
 def install_gurobi():
-    try:
-        import gurobipy
-    except ImportError:
-        pass
-    else:
-        print("gurobi was previously installed")
-        return
+    if found_installation(module="gurobipy"):
+        return True
 
     if on_colab():
-        print("Installing gurobi on Google Colab via pip ... ", end="")
-        os.system("pip install gurobipy")
+        print("Installing gurobi on Google Colab via pip (without license) ... ", end="")
+        os.system("pip install -q gurobipy")
     else:
-        print("Consult gurobi.com for installation procedures ... ", end="")
+        print("Installing gurobi via conda (without license) ... ", end="")
+        os.system("conda install -y -q -c gurobi gurobi")
 
-    try:
-        import gurobipy
-        print("installation successful")
-        return True
-    except ImportError:
-        print("installation failed")
-        return False
+    return confirm_installation(module="gurobipy")
+
 
 def install_cplex():
-    try:
-        import cplex
-    except ImportError:
-        pass
-    else:
-        print("cplex was previously installed")
-        return
+    if found_installation(module="cplex"):
+        return True
 
     if on_colab():
-        print("Installing cplex on Google Colab via pip ... ", end="")
-        os.system("pip install cplex")
+        print("Installing cplex on Google Colab via pip (without license) ... ", end="")
+        os.system("pip install -q cplex")
     else:
-        print("Consult ibm.com for installation procedures ... ", end="")
+        print("Installing cplex via conda (without license) ... ", end="")
+        os.system("conda install -y -q -c ibmdecisionoptimization cplex")
 
-    try:
-        import cplex
-        print("installation successful")
-        return True
-    except ImportError:
-        print("installation failed")
-        return False
+    return confirm_installation(module="cplex")
+
 
 def install_mosek():
-    try:
-        import mosek.fusion
-    except ImportError:
-        pass
-    else:
-        print("mosek was previously installed")
-        return
+    if found_installation(module="mosek.fusion"):
+        return True
 
     if on_colab():
-        print("Installing mosek on Google Colab via pip ... ", end="")
-        os.system("pip install mosek")
+        print("Installing mosek on Google Colab via pip (without license) ... ", end="")
+        os.system("pip install -q mosek")
     else:
-        print("Consult docs.mosek.com for installation procedures ... ", end="")
+        print("Installing mosek via conda  (without license) ... ", end="")
+        os.system("conda install -y -q -c mosek mosek")
 
-    try:
-        import mosek.fusion
-        print("installation successful")
-        return True
-    except ImportError:
-        print("installation failed.")
-        return False
+    return confirm_installation(module="mosek.fusion")
+
 
 def install_xpress():
-    try:
-        import xpress
-    except ImportError:
-        pass
-    else:
-        print("Xpress was previously installed")
-        return
-    
-    if on_colab():
-        print("Installing xpress on Google Colab via pip ... ", end="")
-        os.system("pip install xpress")
-    else:
-        print("Installing xpress via conda ... ", end="")
-        os.system("conda install -c fico-xpress xpress")
-
-    try:
-        import xpress
-        print("installation successful")
+    if found_installation(module="xpress"):
         return True
-    except ImportError:
-        print("installation failed")
-        return False
- 
+
+    if on_colab():
+        print("Installing xpress on Google Colab via pip (without license) ... ", end="")
+        os.system("pip install -q xpress")
+    else:
+        print("Installing xpress via conda (without license) ... ", end="")
+        os.system("conda install -y -q -c fico-xpress xpress")
+
+    return confirm_installation(module="xpress")
