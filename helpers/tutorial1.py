@@ -3,6 +3,7 @@ from math import cos, pi, sin
 from IPython.display import HTML
 from networkx import DiGraph, Graph, draw, layout
 from networkx import draw_networkx_edge_labels as draw_edge_labels
+from networkx import draw_networkx_edges as draw_edges
 from networkx import draw_networkx_labels as draw_labels
 
 
