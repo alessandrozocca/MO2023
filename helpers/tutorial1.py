@@ -5,6 +5,7 @@ from networkx import DiGraph, Graph, draw, layout
 from networkx import draw_networkx_edge_labels as draw_edge_labels
 from networkx import draw_networkx_edges as draw_edges
 from networkx import draw_networkx_labels as draw_labels
+from numpy import sign
 
 
 def draw_graph(graph, ax=None, node_labels=None):
@@ -38,38 +39,44 @@ def draw_graph(graph, ax=None, node_labels=None):
 def draw_network(network, ax=None, edge_flows=None):
     g = DiGraph(network["edges"].keys())
     pos = layout.kamada_kawai_layout(g, weight=None)
-    draw(g, pos=pos, ax=ax, with_labels=True, font_color="white")
+
+    # Draw highlights for edges with a flow
     if edge_flows is not None:
-        F = {k: v for k, v in edge_flows.items() if v > 0}
+        edges = {e for e, v in edge_flows.items() if v > 0}
         draw_edges(
             g,
             pos=pos,
             ax=ax,
-            edgelist=F.keys(),
+            edgelist=edges,
             width=10,
             edge_color="lightblue",
             style="solid",
             alpha=None,
             arrowstyle="-",
-        ),
-    shifted_pos = {k: (x, y - 0.08) for k, (x, y) in pos.items()}
-    for i, data in network["nodes"].items():
-        label = ",".join(f"{k}={v}" for k, v in data.items())
-        value = data.get("b", 0)
-        if value < 0:
-            color = "red"
-        elif value == 0:
-            color = "gray"
-        else:
-            color = "green"
+        )
+
+    # Draw nodes and edges
+    draw(g, pos=pos, ax=ax, with_labels=True, font_color="white")
+
+    # Draw node supply / demand attribute labels
+    cmap = {0: "gray", -1: "red", 1: "green"}
+    shifted_pos = {i: (x, y - 0.08) for i, (x, y) in pos.items()}
+
+    values = {i: data.get("b", 0) for i, data in network["nodes"].items()}
+    labels = {i: f"b={value}" for i, value in values.items()}
+
+    for k, color in cmap.items():
+        nodes = {i for i, value in values.items() if sign(value) == k}
+
         draw_labels(
             g,
             ax=ax,
-            pos={i: shifted_pos[i]},
-            labels={i: label},
+            pos={i: shifted_pos[i] for i in nodes},
+            labels={i: labels[i] for i in nodes},
             font_color=color,
             font_weight="bold",
         )
+
     if edge_flows is None:
         draw_edge_labels(
             g,
@@ -82,7 +89,6 @@ def draw_network(network, ax=None, edge_flows=None):
             },
         )
     else:
-        draw_edges(g, ax=ax, pos=pos),
         draw_edge_labels(
             g, pos=pos, ax=ax, font_size=11, font_weight="bold", edge_labels=edge_flows
         )
