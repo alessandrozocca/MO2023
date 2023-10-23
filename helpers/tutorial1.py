@@ -43,6 +43,7 @@ def draw_network(network, ax=None, edge_flows=None):
         F = {k: v for k, v in edge_flows.items() if v > 0}
         draw_edges(
             g,
+            ax=ax,
             pos=pos,
             edgelist=F.keys(),
             width=10,
@@ -81,7 +82,7 @@ def draw_network(network, ax=None, edge_flows=None):
             },
         )
     else:
-        draw_edges(g, pos=pos),
+        draw_edges(g, ax=ax, pos=pos),
         draw_edge_labels(
             g, pos=pos, ax=ax, font_size=11, font_weight="bold", edge_labels=edge_flows
         )
