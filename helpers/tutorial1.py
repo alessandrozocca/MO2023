@@ -38,7 +38,18 @@ def draw_network(network, ax=None, edge_flows=None):
     g = DiGraph(network["edges"].keys())
     pos = layout.kamada_kawai_layout(g, weight=None)
     draw(g, pos=pos, ax=ax, with_labels=True, font_color="white")
-
+    if edge_flows is not None:
+        F = {k: v for k, v in edge_flows.items() if v > 0}
+        draw_edges(
+            g,
+            pos=pos,
+            edgelist=F.keys(),
+            width=10,
+            edge_color="lightblue",
+            style="solid",
+            alpha=None,
+            arrowstyle="-",
+        ),
     shifted_pos = {k: (x, y - 0.08) for k, (x, y) in pos.items()}
     for i, data in network["nodes"].items():
         label = ",".join(f"{k}={v}" for k, v in data.items())
@@ -69,6 +80,7 @@ def draw_network(network, ax=None, edge_flows=None):
             },
         )
     else:
+        draw_edges(g, pos=pos),
         draw_edge_labels(
             g, pos=pos, ax=ax, font_size=11, font_weight="bold", edge_labels=edge_flows
         )
