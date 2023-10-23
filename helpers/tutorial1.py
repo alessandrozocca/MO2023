@@ -43,8 +43,8 @@ def draw_network(network, ax=None, edge_flows=None):
         F = {k: v for k, v in edge_flows.items() if v > 0}
         draw_edges(
             g,
-            ax=ax,
             pos=pos,
+            ax=ax,
             edgelist=F.keys(),
             width=10,
             edge_color="lightblue",
