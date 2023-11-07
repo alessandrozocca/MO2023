@@ -117,7 +117,7 @@ def plot_solution(coords, model):
         arrival_times = pd.Series([model.node_arrival[i]() for i in route], index=route)
         node_loads = pd.Series([model.node_load[i]() for i in route], index=route)
 
-        ax[r].step(arrival_times, node_loads, where="post", lw=1, c="black")
+        ax[r].step(arrival_times, node_loads, where="post", lw=1, c="black", zorder=-1)
 
         # Add nodes and labels
         ax[r].scatter(arrival_times, node_loads, s=300, c=[node_colors[x-1] for x in route], alpha=0.75)
