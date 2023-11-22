@@ -69,6 +69,84 @@ def make_demand_scenarios():
     return generate_data(means, NUM_NEIGHBORHOODS, NUM_SCENARIOS)
 
 
+def plot_instance(data: StaticData, demands=None):
+    """
+    Plots coordinates for all locations.
+    """
+    _, ax = plt.subplots(figsize=(8, 8))
+
+    import urllib
+    from PIL import Image
+
+    url = "https://i.imgur.com/9PKCdUN.png"
+
+    with urllib.request.urlopen(url) as url_response:
+        img = Image.open(url_response)
+
+    ax.imshow(img, extent=[-5, 105, -5, 105])
+
+    # Plot stations as blue circles.
+    ax.scatter(
+        data.coords[data.stations, 0],
+        data.coords[data.stations, 1],
+        s=75,
+        facecolors="lightblue",
+        edgecolors="black",
+        label="Station",
+    )
+
+    # Plot neighborhoods as red circles.
+    offset = len(data.stations)
+    new_idcs = [idx + offset for idx in data.neighborhoods]
+    ax.scatter(
+        data.coords[new_idcs, 0],
+        data.coords[new_idcs, 1],
+        s=75,
+        facecolors="lightcoral",
+        edgecolors="black",
+        label="Neighborhood",
+    )
+
+    # Plot demand for each neighborhood
+    if demands is not None:
+        for idx, demand in enumerate(demands):
+            ax.text(
+                data.coords[idx + offset, 0],
+                data.coords[idx + offset, 1],
+                demand,
+                fontsize=7,
+                ha="center",
+                va="center",
+            )
+
+    ax.set_xlabel("X-coordinate")
+    ax.set_ylabel("Y-coordinate")
+    ax.set_title("Static data")
+
+    plt.legend()
+
+    return ax
+
+
+def plot_solution(data: StaticData, build_decisions: dict, demand=None):
+    ax = plot_instance(data, demand)
+
+    # Plot stations in the solution with red circles
+    for idx, number_of_stations in build_decisions.items():
+        ax.text(
+            data.coords[idx, 0],
+            data.coords[idx, 1],
+            int(number_of_stations),
+            fontsize=7,
+            ha="center",
+            va="center",
+        )
+
+    ax.set_title("Solution")
+
+    plt.show()
+
+
 # ---------------------------------------------------------------------
 def read_elastic_net_data():
     """
