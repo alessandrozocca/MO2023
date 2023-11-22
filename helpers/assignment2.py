@@ -66,14 +66,14 @@ def generate_data(means: list, num_locations: int, num_samples: int = 365):
 
 def make_demand_scenarios():
     means = [3, 4, 4, 4, 4, 3, 2]
-    return generate_data(means, NUM_NEIGHBORHOODS, NUM_SCENARIOS)
+    return generate_data(means, NUM_NEIGHBORHOODS, NUM_SCENARIOS).astype(int)
 
 
 def plot_instance(data: StaticData, demands=None):
     """
     Plots coordinates for all locations.
     """
-    _, ax = plt.subplots(figsize=(8, 8))
+    _, ax = plt.subplots(figsize=(6, 6))
 
     import urllib
     from PIL import Image
@@ -114,7 +114,7 @@ def plot_instance(data: StaticData, demands=None):
                 data.coords[idx + offset, 0],
                 data.coords[idx + offset, 1],
                 demand,
-                fontsize=7,
+                fontsize=6,
                 ha="center",
                 va="center",
             )
