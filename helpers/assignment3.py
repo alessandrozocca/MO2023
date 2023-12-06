@@ -34,11 +34,11 @@ def get_route(model):
 def get_distances_to(graph, node):
     return nx.single_source_dijkstra_path_length(graph, node, weight="length")
  
- 
+
 def get_crowdedness(graph):
-    c = 5395065019
+    c = 46390544  # Dam Square
     delta = get_distances_to(graph, c)
-    return {k: 2*math.exp(-v/250) if k != c else 2 for k, v in delta.items()}
+    return {k: 2 * math.exp(-v / 400) if k != c else 2 for k, v in delta.items()}
  
     
 def plot_network(graph, *routes):
