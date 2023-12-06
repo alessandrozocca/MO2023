@@ -7,8 +7,10 @@ from itertools import cycle
 from matplotlib.colors import TABLEAU_COLORS
 
 
-def get_network(center, radius):
+def get_network():
     """ Get a networkx MultiDiGraph object representing the area specified in the query. """
+    center = "Oudezijds Achterburgwal 149, Amsterdam, The Netherlands"
+    radius = 1100
     return osmnx.graph.graph_from_address(center, radius, network_type='walk', simplify=True)
 
     
@@ -38,7 +40,7 @@ def get_distances_to(graph, node):
 def get_crowdedness(graph):
     c = 46390544  # Dam Square
     delta = get_distances_to(graph, c)
-    return {k: 2 * math.exp(-v / 1000) if k != c else 2 for k, v in delta.items()}
+    return {k: 3 * math.exp(-v / 500) if k != c else 2 for k, v in delta.items()}
  
     
 def plot_network(graph, *routes):
